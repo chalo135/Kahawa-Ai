@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kahawa Smart — Coffee Leaf Disease AI</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     NAVIGATION
+══════════════════════════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <div class="nav-logo"><i data-lucide="leaf" style="width:16px;height:16px;color:#000;display:block"></i></div>
+    <span class="nav-title">Kahawa<span>Smart</span></span>
+  </div>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">🌙</button>
+  <button class="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links">
+    <li><a href="#" data-page="page-home"><i data-lucide="home"></i> Home</a></li>
+    <li><a href="#" data-page="page-scan"><i data-lucide="scan-line"></i> Leaf Scan</a></li>
+    <li><a href="#" data-page="page-about"><i data-lucide="bar-chart-2"></i> About & Analytics</a></li>
+    <li><a href="#" data-page="page-facts"><i data-lucide="coffee"></i> Coffee Facts</a></li>
+  </ul>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 1: HOME
+══════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+  <div class="container">
+
+    <section class="section section--hero">
+      <div class="hero-grid">
+
+        <!-- Hero text -->
+        <div>
+          <div class="badge badge-green badge--spaced">AI-Powered Coffee Disease Detection</div>
+          <h1 class="section-title hero-title">
+            Protect Your<br><span class="accent">Coffee Harvest</span><br>with AI
+          </h1>
+          <p class="hero-description">
+            Kahawa Smart uses deep learning to detect coffee leaf rust instantly.
+            Upload a photo of your leaf and get a diagnosis in seconds — in English or Swahili.
+          </p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" onclick="navigateTo('page-scan')"><i data-lucide="scan-line"></i> Scan a Leaf</button>
+            <button class="btn btn-ghost" onclick="navigateTo('page-about')"><i data-lucide="bar-chart-2"></i> See Analytics</button>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat__value hero-stat__value--accent">94%</div>
+              <div class="hero-stat__label">Detection accuracy</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat__value hero-stat__value--accent2">&lt;2s</div>
+              <div class="hero-stat__label">Response time</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat__value hero-stat__value--primary">2</div>
+              <div class="hero-stat__label">Languages</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Home chat -->
+        <div>
+          <div class="chat-window">
+            <div class="chat-header">
+              <div class="chat-avatar">KS</div>
+              <div>
+                <div class="chat-name">Kahawa AI Advisor</div>
+                <div class="chat-status">Online — ready to help</div>
+              </div>
+            </div>
+            <div class="chat-messages" id="home-chat-messages"></div>
+            <div class="chat-input-row">
+              <textarea class="chat-input" id="home-chat-input"
+                placeholder="Ask about coffee diseases... (English or Swahili)" rows="1"></textarea>
+              <button class="chat-send" id="home-chat-send" aria-label="Send"><i data-lucide="send"></i></button>
+            </div>
+          </div>
+          <!-- Suggestion chips -->
+          <div class="suggestion-chips">
+            <button class="suggestion-chip">What is leaf rust?</button>
+            <button class="suggestion-chip">Dawa gani nitatumia?</button>
+            <button class="suggestion-chip">How to prevent rust?</button>
+            <button class="suggestion-chip">Best time to spray?</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section section--bordered">
+      <h2 class="section-title section-title--centered">How It Works</h2>
+      <p class="section-sub section-sub--centered">Three simple steps to protect your farm</p>
+      <div class="steps-grid">
+        <div class="card card--centered">
+          <div class="step-icon"><i data-lucide="camera"></i></div>
+          <h3 class="step-title">1. Upload a photo</h3>
+          <p class="step-text">Take a clear photo of your coffee leaf and upload it to the Leaf Scan page.</p>
+        </div>
+        <div class="card card--centered">
+          <div class="step-icon"><i data-lucide="cpu"></i></div>
+          <h3 class="step-title">2. AI analyses it</h3>
+          <p class="step-text">Our MobileNetV2 model trained on coffee leaf images detects rust in under 2 seconds.</p>
+        </div>
+        <div class="card card--centered">
+          <div class="step-icon"><i data-lucide="message-circle"></i></div>
+          <h3 class="step-title">3. Get advice</h3>
+          <p class="step-text">The AI advisor gives you specific treatment steps and prevention tips in your language.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 2: LEAF SCAN
+══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-scan">
+  <div class="container">
+    <section class="section">
+      <div class="badge badge-green badge--spaced">Leaf Disease Scanner</div>
+      <h1 class="section-title">Scan Your Coffee Leaf</h1>
+      <p class="section-sub">Upload a clear photo of a coffee leaf — we will detect leaf rust instantly.</p>
+
+      <div class="scan-grid">
+
+        <!-- Upload + Result -->
+        <div>
+          <div class="dropzone" id="scan-dropzone" role="button" tabindex="0" aria-label="Upload leaf image">
+            <div id="scan-drop-icon">
+              <div class="dropzone-icon"><i data-lucide="upload-cloud"></i></div>
+              <h3>Drop your leaf photo here</h3>
+              <p>or click to browse files</p>
+              <p class="dropzone-hint">JPG, PNG · Max 10MB</p>
+            </div>
+            <img id="scan-preview" class="hidden" alt="Leaf preview" class="scan-preview-img"/>
+          </div>
+          <input type="file" id="scan-file-input" accept="image/*" hidden/>
+
+          <div class="scan-actions">
+            <button class="btn btn-ghost" id="scan-clear-btn" disabled>Clear</button>
+            <button class="btn btn-primary" id="scan-btn" disabled>🔍 Analyse Leaf</button>
+          </div>
+
+          <div class="result-card hidden" id="scan-result"></div>
+
+          <div class="card tips-card">
+            <h3 class="tips-title">📷 Photo Tips for Best Results</h3>
+            <ul class="tips-list">
+              <li>✅ Use natural daylight — avoid flash</li>
+              <li>✅ Hold phone 20–30cm from the leaf</li>
+              <li>✅ Fill the frame with the leaf</li>
+              <li>✅ Keep the camera steady — no blur</li>
+              <li>✅ Capture both sides of the leaf if possible</li>
+              <li>❌ Avoid dark or heavily shadowed photos</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Scan page AI chat -->
+        <div>
+          <div class="chat-panel-label">AI Treatment Advisor</div>
+          <div class="chat-window chat-window--tall">
+            <div class="chat-header">
+              <div class="chat-avatar">KS</div>
+              <div>
+                <div class="chat-name">Kahawa AI Advisor</div>
+                <div class="chat-status">Awaiting scan result</div>
+              </div>
+            </div>
+            <div class="chat-messages" id="scan-chat-messages">
+              <div class="msg ai">
+                <div class="msg-avatar" style="background:var(--accent);color:#000">KS</div>
+                <div class="msg-bubble">Upload a leaf photo and click Analyse. I will give you a full diagnosis and treatment plan. You can also ask me questions directly.</div>
+              </div>
+            </div>
+            <div class="chat-input-row">
+              <textarea class="chat-input" id="scan-chat-input"
+                placeholder="Ask about your leaf result..." rows="1"></textarea>
+              <button class="chat-send" id="scan-chat-send" aria-label="Send"><i data-lucide="send"></i></button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 3: ABOUT & ANALYTICS
+══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-about">
+  <div class="container">
+    <section class="section">
+      <div class="badge badge-gold badge--spaced">Analytics & Research</div>
+      <h1 class="section-title">Coffee Leaf Rust — The Crisis</h1>
+      <p class="section-sub">How Hemileia vastatrix is devastating East African coffee farming</p>
+
+      <!-- Key stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value stat-value--danger">70%</div>
+          <div class="stat-label">Max crop loss in affected farms</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value stat-value--accent2">$1B+</div>
+          <div class="stat-label">Annual economic damage globally</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value stat-value--accent">50+</div>
+          <div class="stat-label">Countries affected worldwide</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value stat-value--primary">1861</div>
+          <div class="stat-label">Year first discovered in Kenya</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-row">
+        <div class="chart-wrap">
+          <div class="chart-title">Crop loss by East African country (%)</div>
+          <canvas id="chart-crop-loss" height="220"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-title">Infection risk vs rainfall (monthly)</div>
+          <canvas id="chart-season" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="charts-row charts-row--asymmetric">
+        <div class="chart-wrap chart-wrap--centered">
+          <div class="chart-title chart-title--left">Treatment effectiveness</div>
+          <canvas id="chart-treatment" class="chart-donut"></canvas>
+        </div>
+
+        <!-- Disease timeline -->
+        <div class="chart-wrap">
+          <div class="chart-title">Disease progression timeline</div>
+          <div class="timeline">
+
+            <div class="timeline-item">
+              <div class="timeline-day">Day 0</div>
+              <div class="timeline-content timeline-content--green">
+                <strong class="timeline-label timeline-label--green">Infection</strong> — spores land on leaf underside and germinate in moisture
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-day">Day 7–14</div>
+              <div class="timeline-content timeline-content--gold">
+                <strong class="timeline-label timeline-label--gold">Early spots</strong> — yellow-green spots appear on upper leaf surface
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-day">Day 14–21</div>
+              <div class="timeline-content timeline-content--warning">
+                <strong class="timeline-label timeline-label--warning">Orange pustules</strong> — powdery orange spore masses form underneath
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-day">Day 21+</div>
+              <div class="timeline-content timeline-content--danger">
+                <strong class="timeline-label timeline-label--danger">Leaf drop</strong> — leaves brown and fall, reducing photosynthesis by up to 40%
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- About the system -->
+      <div class="divider"></div>
+      <h2 class="section-title about-title">About Kahawa Smart</h2>
+      <div class="about-grid">
+        <div>
+          <p class="about-text">
+            Kahawa Smart is an AI-powered coffee leaf disease detection system developed as a final year research project at Multimedia University of Kenya, Faculty of Computing and Information Technology. The system uses a fine-tuned MobileNetV2 deep learning model trained on the JMuBEN coffee leaf dataset collected from Mutira plantation in Kirinyaga County.
+          </p>
+          <p class="about-text">
+            Designed specifically for smallholder coffee farmers in East Africa, the system provides instant disease diagnosis through a mobile-friendly web interface in both English and Swahili — without requiring specialized agricultural expertise.
+          </p>
+        </div>
+        <div class="tech-stack">
+          <div class="card tech-card">
+            <span class="tech-label">AI Model</span>
+            <span class="badge badge-green">MobileNetV2</span>
+          </div>
+          <div class="card tech-card">
+            <span class="tech-label">Framework</span>
+            <span class="badge badge-green">TensorFlow 2.x</span>
+          </div>
+          <div class="card tech-card">
+            <span class="tech-label">Backend</span>
+            <span class="badge badge-green">FastAPI</span>
+          </div>
+          <div class="card tech-card">
+            <span class="tech-label">AI Advisor</span>
+            <span class="badge badge-gold">Claude AI</span>
+          </div>
+          <div class="card tech-card">
+            <span class="tech-label">Dataset</span>
+            <span class="badge badge-gold">JMuBEN</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 4: COFFEE FACTS
+══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-facts">
+  <div class="container">
+    <section class="section">
+      <div class="badge badge-gold badge--spaced">Did You Know?</div>
+      <h1 class="section-title">Coffee & Leaf Rust Facts</h1>
+      <p class="section-sub">Fascinating facts about the world's favourite drink and its greatest enemy</p>
+
+      <div class="facts-grid">
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="coffee" class="icon-gold"></i></div>
+          <div class="fact-title">Second most traded commodity</div>
+          <div class="fact-text">Coffee is the second most traded commodity in the world after oil, with over 2.25 billion cups consumed every day globally.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="map-pin"></i></div>
+          <div class="fact-title">Kenya's coffee heritage</div>
+          <div class="fact-text">Kenya produces some of the world's most prized Arabica coffee. The country exports over 50,000 metric tonnes annually, supporting over 700,000 farming families.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="biohazard" class="icon-danger"></i></div>
+          <div class="fact-title">The rust fungus</div>
+          <div class="fact-text">Coffee leaf rust is caused by Hemileia vastatrix — a fungus that devastated Sri Lanka's entire coffee industry in 1869, turning the country to tea production instead.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="droplets"></i></div>
+          <div class="fact-title">Moisture spreads rust</div>
+          <div class="fact-text">Rust spores need only 24 hours of moisture to germinate. A single rainy season can spread rust across an entire farm, making early detection absolutely critical.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="thermometer" class="icon-gold"></i></div>
+          <div class="fact-title">Temperature matters</div>
+          <div class="fact-text">Leaf rust thrives between 15°C and 28°C — exactly the temperature range of East African highland coffee regions. Climate change is expanding this danger zone upward in altitude.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="microscope"></i></div>
+          <div class="fact-title">Over 50 known races</div>
+          <div class="fact-text">There are more than 50 known races of Hemileia vastatrix. This genetic diversity makes it extremely challenging to develop fully resistant coffee varieties.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="cpu"></i></div>
+          <div class="fact-title">AI changes everything</div>
+          <div class="fact-text">Traditional rust detection requires trained agronomists doing manual inspections. AI systems like Kahawa Smart give any farmer instant diagnosis from a smartphone photo.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="sprout"></i></div>
+          <div class="fact-title">Prevention beats cure</div>
+          <div class="fact-text">Applying copper-based fungicide preventively costs 3–5 times less than treating an active outbreak. Early AI detection makes preventive action possible before visible symptoms appear.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="smartphone"></i></div>
+          <div class="fact-title">Mobile-first Africa</div>
+          <div class="fact-text">Over 90% of internet access in rural Kenya is through smartphones. Kahawa Smart is designed mobile-first so any farmer with a phone can use it immediately.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="globe"></i></div>
+          <div class="fact-title">The global coffee belt</div>
+          <div class="fact-text">Coffee only grows in a narrow band around the equator called the Coffee Belt. Kenya, Ethiopia, Uganda, and Tanzania all sit perfectly within this zone.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="timer" class="icon-gold"></i></div>
+          <div class="fact-title">5 years to first harvest</div>
+          <div class="fact-text">A coffee plant takes 3–5 years from planting to produce its first commercial harvest. A rust outbreak can destroy years of investment in under three weeks.</div>
+        </div>
+        <div class="fact-card">
+          <div class="fact-icon"><i data-lucide="shield"></i></div>
+          <div class="fact-title">Copper is the shield</div>
+          <div class="fact-text">Copper-based fungicides like Kocide have been used to control coffee leaf rust since the 1880s. Applied correctly, they are 85–95% effective in preventing new infections.</div>
+        </div>
+      </div>
+
+      <!-- Quote -->
+      <blockquote class="pull-quote">
+        <p class="pull-quote__text">
+          "Early detection is the single most effective intervention available to smallholder coffee farmers. Every day of delayed diagnosis is a day the fungus is spreading."
+        </p>
+        <footer class="pull-quote__source">— Agricultural Extension Research, East Africa</footer>
+      </blockquote>
+
+    </section>
+  </div>
+</div>
+
+<!-- Scripts: order matters — GSAP first, then Chart.js, then app.js last, Lucide last to render icons -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="app.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>                                                                                             ,,çççççççç,,,,,,,,,

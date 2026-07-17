@@ -1,0 +1,65 @@
+# What must NOT go into the backend image.
+#
+# NOTE: files the app reads at runtime are deliberately NOT listed here and so
+# ARE copied in: all *.py modules, coffee_rust_model.h5, rag_index.pkl,
+# facts.json, requirements.txt.
+
+# ── Secrets — never bake into the image (set via `fly secrets set`) ──
+.env
+.env.*
+
+# ── Version control / editor / dev tooling ──
+.git
+.gitignore
+.vscode/
+.agents/
+*.log
+
+# ── Python caches and the local virtualenv ──
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# ── Runtime SQLite DB — lives on the Fly volume, not in the image ──
+# (DB_PATH points at /data/kahawa.db in fly.toml). Shipping the local copy
+# would risk it shadowing/overwriting real data on first boot.
+kahawa.db
+*.db-journal
+*.db-wal
+
+# ── Training image datasets — NOT read at runtime (only train_model.py uses
+#    them, via absolute Desktop paths). ~393 MB, excluded to keep the image lean.
+coffee___healthy/
+coffee___rust/
+coffee___red_spider_mite/
+new leaves/
+
+# ── RAG source documents — read ONLY by build_rag_index.py (manual). The app
+#    loads the pre-built rag_index.pkl at runtime, never these source files.
+Knowledge base/
+
+# ── Frontend — this backend is API-only and does not serve static files.
+#    (index.html/login.html/signup.html, css/js, service worker, PWA assets.)
+*.html
+*.css
+*.js
+js/
+sw.js
+manifest.json
+apple-touch-icon.png
+icon-*.png
+bg-*.jpg
+flower.jpg
+leaf.jpg
+
+# ── Security demo material (docs / standalone demos, not part of the API) ──
+security_demos/
+SECURITY.md
+SQL_INJECTION.md
+
+# ── Infra files themselves don't need to be inside the image ──
+Dockerfile
+.dockerignore
+fly.toml

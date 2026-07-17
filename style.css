@@ -1,9 +1,3 @@
-/* ============================================================
-   Kahawa Smart — Global Stylesheet
-   Dark professional theme with green coffee accent
-   Font: Playfair Display (headings) + DM Sans (body)
-============================================================ */
-
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
 
 /* ── CSS VARIABLES ── */
@@ -34,15 +28,22 @@
 
 /* ── RESET ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; font-size: 16px; }
+html { scroll-behavior: smooth; font-size: 16px; overflow-x: hidden; }
+
+/* NOTE: overflow-y is intentionally left at its default (visible) on both
+   html and body. Setting overflow-y:auto on body turns body into its OWN
+   scroll container instead of letting the document (html) scroll. That
+   breaks window.scrollTo()/scrollIntoView()/`#hash` links, which expect
+   the document itself to be the scrolling element. This was very likely
+   part of why the page "wouldn't scroll." */
 body {
   background: var(--bg-0);
   color: var(--text-primary);
   font-family: var(--font-body);
   min-height: 100vh;
   line-height: 1.6;
-  overflow-x: hidden;
 }
+
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; border: none; background: none; font-family: var(--font-body); }
 img { max-width: 100%; display: block; }
@@ -60,7 +61,12 @@ input, textarea { font-family: var(--font-body); }
    Facts → bg-facts.jpg  (e.g. a coffee cup / beans image)
 ══════════════════════════════════════════════════════════ */
 
-/* Each page carries its own background image */
+/* Each page carries its own background image.
+   background-attachment:fixed was removed on purpose — combined with the
+   backdrop-filter:blur() on the fixed navbar, "fixed" backgrounds are a
+   classic cause of stuttering/frozen scroll on both desktop and mobile
+   browsers. Plain "scroll" costs nothing visually here since the image
+   already covers the full page. */
 #page-home,
 #page-scan,
 #page-about,
@@ -68,7 +74,6 @@ input, textarea { font-family: var(--font-body); }
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-attachment: fixed;
 }
 
 #page-home  { background-image: url('bg-home.jpg');  }
@@ -77,7 +82,7 @@ input, textarea { font-family: var(--font-body); }
 #page-facts { background-image: url('bg-facts.jpg'); }
 
 /* Dark overlay on top of each background so text stays readable.
-   Uses ::after so it sits above the image but below the content. */
+   Uses ::before so it sits above the image but below the content. */
 #page-home::before,
 #page-scan::before,
 #page-about::before,
@@ -85,9 +90,7 @@ input, textarea { font-family: var(--font-body); }
   content: '';
   position: fixed;
   inset: 0;
-  /* Adjust the last value (0.88) to control darkness: 
-     0.7 = lighter, 0.92 = darker */
-  background: rgba(8, 12, 10, 0.65);
+  background: rgba(8, 12, 10, 0.82);
   pointer-events: none;
   z-index: 0;
 }
@@ -100,6 +103,7 @@ input, textarea { font-family: var(--font-body); }
   top: 0; left: 0; right: 0;
   height: var(--nav-h);
   background: rgba(8,12,10,0.88);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -196,42 +200,37 @@ input, textarea { font-family: var(--font-body); }
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 1.5rem;
+  /* Sit above the page's darkening ::before overlay (z-index:0). Without a
+     stacking layer here, that positioned overlay paints ON TOP of this
+     in-flow content, veiling the text/buttons to ~18% — the "blurred",
+     washed-out look. */
+  position: relative;
+  z-index: 1;
 }
 
 .section {
   padding: 4rem 0;
 }
 
+/* Text-shadow simplified: the old version stacked 40px-blur glow layers,
+   which on a busy photo background reads as a soft haze instead of crisp
+   text (this is what made "How It Works" look ghosted/washed out). A
+   single tight shadow keeps contrast without smearing the letterforms. */
 .section-title {
   font-family: var(--font-display);
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   font-weight: 900;
   letter-spacing: -0.03em;
   margin-bottom: 0.5rem;
-  color: #ffffff;
-  text-shadow:
-    0 0 30px rgba(0,0,0,1),
-    0 2px 4px rgba(0,0,0,1),
-    0 4px 20px rgba(0,0,0,0.9);
+  color: #9bff69;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
 }
 
 .section-sub {
   font-size: 0.95rem;
   margin-bottom: 2.5rem;
-  color: #e8f5e8;
-  text-shadow:
-    0 0 20px rgba(0,0,0,1),
-    0 1px 3px rgba(0,0,0,1);
-}
-
-/* In light mode restore normal colors */
-body.light .section-title {
-  color: var(--text-primary);
-  text-shadow: none;
-}
-body.light .section-sub {
-  color: var(--text-secondary);
-  text-shadow: none;
+  color: #d4ecd4;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 .accent   { color: var(--accent); }
@@ -310,24 +309,26 @@ body.light .section-sub {
    HOME PAGE — HERO
 ══════════════════════════════════════════════════════════ */
 .section--hero {
-  padding-top: 3rem;
+  padding-top: 4rem;
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-  align-items: center;
+.hero-centered {
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 2rem 0 2rem;
 }
+.hero-centered .hero-description { margin: 0 auto 2rem; }
+.hero-centered .hero-actions     { justify-content: center; }
+.hero-centered .hero-stats       { justify-content: center; }
+
+.btn--lg { padding: 0.9rem 2rem; font-size: 1rem; }
 
 .hero-title {
   font-size: clamp(2rem, 5vw, 3.2rem);
   margin-bottom: 1rem;
   color: #ffffff;
-  text-shadow:
-    0 0 30px rgba(0,0,0,1),
-    0 2px 4px rgba(0,0,0,1),
-    0 4px 20px rgba(0,0,0,0.9);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
 }
 
 .hero-description {
@@ -335,10 +336,8 @@ body.light .section-sub {
   line-height: 1.7;
   margin-bottom: 2rem;
   max-width: 480px;
-  color: #e8f5e8;
-  text-shadow:
-    0 0 20px rgba(0,0,0,1),
-    0 1px 3px rgba(0,0,0,1);
+  color: #d4ecd4;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
 }
 
 .hero-actions {
@@ -358,7 +357,7 @@ body.light .section-sub {
   font-family: var(--font-display);
   font-size: 1.8rem;
   font-weight: 700;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
 }
 .hero-stat__value--accent  { color: var(--accent); }
 .hero-stat__value--accent2 { color: var(--accent-2); }
@@ -366,18 +365,11 @@ body.light .section-sub {
 
 .hero-stat__label {
   font-size: 0.8rem;
-  color: #b0c8b0;
+  color: #c8dfc8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.85);
 }
-
-/* Light mode overrides for hero text */
-body.light .hero-title        { color: var(--text-primary); text-shadow: none; }
-body.light .hero-description  { color: var(--text-secondary); text-shadow: none; }
-body.light .hero-stat__value--primary { color: var(--text-primary); text-shadow: none; }
-body.light .hero-stat__label  { color: var(--text-muted); text-shadow: none; }
-body.light .hero-stat__value  { text-shadow: none; }
 
 /* Suggestion chips */
 .suggestion-chips {
@@ -584,15 +576,59 @@ body.light .hero-stat__value  { text-shadow: none; }
   30% { transform: translateY(-4px); opacity: 1; }
 }
 
+/* Bubble + timestamp stack */
+.msg-content { display: flex; flex-direction: column; min-width: 0; }
+.msg-time {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* "Press Enter to send" hint under the input */
+.chat-hint {
+  padding: 0 1rem 0.6rem;
+  background: var(--bg-2);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-align: right;
+}
+.chat-hint[hidden] { display: none; }
+
+/* Disabled state while the advisor is replying */
+.chat-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.chat-send:disabled  { opacity: 0.5; cursor: not-allowed; }
+.chat-send:disabled:hover { background: var(--accent); box-shadow: none; }
+
 /* ══════════════════════════════════════════════════════════
    SCAN PAGE
 ══════════════════════════════════════════════════════════ */
 .scan-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  align-items: start;
+  /* Chat is the dominant column (~63%), upload the compact sidebar (~37%). */
+  grid-template-columns: 1.7fr 1fr;
+  gap: 1.5rem;
+  align-items: stretch;   /* stretch so the chat panel fills the row height */
 }
+
+/* Chat left + primary, upload right + secondary (DOM order is unchanged;
+   this only reorders visually, so no JS selectors move). */
+.scan-col--chat   { order: 1; display: flex; flex-direction: column; }
+.scan-col--upload { order: 2; }
+
+/* Chat panel fills the full height of the layout and reads as the main
+   surface: subtle accent border + soft glow (existing vars only) and a
+   little more breathing room now that it is larger. */
+.scan-col--chat .chat-window--tall {
+  height: auto;
+  flex: 1;
+  min-height: 600px;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 0 0 1px var(--accent-dim), 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.scan-col--chat .chat-header    { padding: 1.15rem 1.5rem; }
+.scan-col--chat .chat-messages  { padding: 1.5rem; }
+.scan-col--chat .chat-input-row { padding: 1.15rem 1.25rem; }
 
 .scan-preview-img {
   max-height: 280px;
@@ -608,28 +644,31 @@ body.light .hero-stat__value  { text-shadow: none; }
   justify-content: flex-end;
 }
 
-/* Upload dropzone */
+/* Upload dropzone — compacted for the narrower sidebar column */
 .dropzone {
   border: 2px dashed var(--border-strong);
   border-radius: var(--radius-lg);
-  padding: 3rem 2rem;
+  padding: 1.75rem 1.25rem;
   text-align: center;
   cursor: pointer;
   transition: all var(--transition);
   background: var(--bg-1);
 }
+/* Two upload buttons share the row evenly in the narrow column */
+.scan-upload-actions { display: flex; gap: 0.6rem; margin-top: 0.75rem; }
+.scan-upload-actions .btn-upload-option { flex: 1; text-align: center; }
 .dropzone:hover,
 .dropzone.drag-over {
   border-color: var(--accent);
   background: var(--accent-dim);
 }
-.dropzone-icon { font-size: 3rem; margin-bottom: 1rem; display:flex; justify-content:center; }
-.dropzone-icon svg { width:52px; height:52px; color: var(--accent); opacity:0.8; }
+.dropzone-icon { font-size: 2rem; margin-bottom: 0.6rem; display:flex; justify-content:center; }
+.dropzone-icon svg { width:40px; height:40px; color: var(--accent); opacity:0.8; }
 .dropzone h3   { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
 .dropzone p    { color: var(--text-secondary); font-size: 0.875rem; }
 .dropzone-hint { margin-top: 0.5rem; color: var(--text-muted); font-size: 0.8rem; }
 
-/* Photo tips card */
+/* Photo tips card — collapsible accordion (native <details>) */
 .tips-card { margin-top: 1.5rem; }
 
 .tips-title {
@@ -639,6 +678,31 @@ body.light .hero-stat__value  { text-shadow: none; }
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.75rem;
+}
+
+/* Heading becomes a tappable summary row with a rotating chevron. */
+details.tips-card > summary.tips-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0;
+  cursor: pointer;
+  list-style: none;
+}
+details.tips-card > summary.tips-title::-webkit-details-marker { display: none; }
+.tips-chevron {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+details.tips-card[open] > summary.tips-title { margin-bottom: 0.75rem; }
+details.tips-card[open] .tips-chevron { transform: rotate(180deg); }
+details.tips-card[open] .tips-list { animation: tipsIn 0.25s ease; }
+@keyframes tipsIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .tips-list {
@@ -651,6 +715,109 @@ body.light .hero-stat__value  { text-shadow: none; }
   padding: 0;
   margin: 0;
 }
+.tips-list .tip-good::before { content: '✓ '; color: var(--accent);  font-weight: 700; }
+.tips-list .tip-bad::before  { content: '✗ '; color: var(--danger); font-weight: 700; }
+
+/* ══════════════════════════════════════════════════════════
+   DISEASE REFERENCE (symptom disclosure + full guide)
+   Reuses existing card styles and colour variables only.
+══════════════════════════════════════════════════════════ */
+
+/* Shared list style — matches the .tips-list conventions */
+.symptom-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.symptom-list li { position: relative; padding-left: 1.25rem; }
+.symptom-list li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0.55em;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.symptom-list--muted li::before { background: var(--text-muted); }
+
+/* (a) Collapsed disclosure beneath a scan result — deliberately quiet so it
+   does not compete with the prediction above it. */
+.symptom-disclosure {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.symptom-disclosure__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  transition: color var(--transition);
+}
+.symptom-disclosure__toggle:hover { color: var(--text-primary); }
+.symptom-disclosure__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.symptom-disclosure__chevron {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+.symptom-disclosure.is-open .symptom-disclosure__chevron { transform: rotate(180deg); }
+
+/* Animated expand/collapse with no JS height math and no GSAP (grid-rows
+   0fr -> 1fr), so nothing needs cleaning up on route change. */
+.symptom-disclosure__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition);
+}
+.symptom-disclosure.is-open .symptom-disclosure__body { grid-template-rows: 1fr; }
+.symptom-disclosure__inner { overflow: hidden; }
+
+/* (b) Full disease guide on the Coffee Facts (learn) page */
+.disease-guide { margin-bottom: 2.5rem; }
+.disease-guide__head { margin-bottom: 1rem; }
+.disease-guide__name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.disease-guide__meta {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+.disease-guide__subhead {
+  margin: 1.5rem 0 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+.disease-guide__subhead:first-of-type { margin-top: 0.5rem; }
 
 /* Chat panel label */
 .chat-panel-label {
@@ -938,24 +1105,98 @@ body.light .hero-stat__value  { text-shadow: none; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ══════════════════════════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════════════════════════ */
+
+.advisor-fab-wrap {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 998;
+  flex-direction: row-reverse;
+}
+
+.advisor-fab {
+  width: 98px;
+  height: 98px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 24px rgba(74,163,84,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+  position: relative;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.advisor-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 32px rgba(74,163,84,0.65), 0 2px 12px rgba(0,0,0,0.3);
+}
+
+.advisor-fab::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: fab-pulse 2.5s ease-out infinite;
+}
+@keyframes fab-pulse {
+  0%   { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.65); opacity: 0; }
+}
+
+.advisor-fab__icon {
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+  display: block;
+}
+
+.advisor-fab__label {
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 100px;
+  padding: 0.45rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.advisor-fab-wrap:hover .advisor-fab__label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
 @media (max-width: 900px) {
   .hero-grid,
   .scan-grid,
   .about-grid { grid-template-columns: 1fr; }
 
+  /* Single column: upload FIRST so a farmer can scan without scrolling
+     past the (now large) chat panel. Chat returns to a fixed height. */
+  .scan-col--upload { order: 1; }
+  .scan-col--chat   { order: 2; }
+  .scan-col--chat .chat-window--tall {
+    flex: none;
+    min-height: 0;
+    height: 480px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  }
+
   .charts-row,
   .charts-row--asymmetric { grid-template-columns: 1fr; }
 
   .steps-grid { grid-template-columns: 1fr; }
-
-  /* On mobile, fixed backgrounds can be glitchy — switch to scroll */
-  #page-home,
-  #page-scan,
-  #page-about,
-  #page-facts { background-attachment: scroll; }
 }
 
 @media (max-width: 768px) {
@@ -1029,17 +1270,18 @@ body.light {
   --text-muted: #7a9e7b;
 }
 
-/* Light mode overlay — semi-transparent so background image shows through */
+/* Light mode overlay — enough white to keep text dark and readable */
 body.light #page-home::before,
 body.light #page-scan::before,
 body.light #page-about::before,
 body.light #page-facts::before {
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(244, 247, 244, 0.88);
 }
 
 /* Navbar in light mode */
 body.light .navbar {
   background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
 
@@ -1063,7 +1305,6 @@ body.light .step-title                { color: #0f1a10; }
 body.light .step-text                 { color: #2a4a2b; }
 body.light .about-text                { color: #2a4a2b; }
 body.light .fact-text                 { color: #2a4a2b; }
-body.light .section-sub               { color: #1e3a1f; }
 
 /* Cards get a solid white background in light mode for readability */
 body.light .card,
@@ -1071,10 +1312,58 @@ body.light .fact-card,
 body.light .stat-card,
 body.light .chart-wrap,
 body.light .chat-window,
+body.light .result-card,
 body.light .dropzone {
   background: rgba(255, 255, 255, 0.92);
   border-color: rgba(74,163,84,0.3);
 }
+
+body.light .result-label      { color: #0f1a10; }
+body.light .msg.ai .msg-bubble { background: #eef2ee; border-color: rgba(74,163,84,0.25); color: #0f1a10; }
+body.light .chat-input         { background: #f4f7f4; color: #0f1a10; border-color: rgba(74,163,84,0.3); }
+body.light .chat-input-row     { background: #eef2ee; }
+body.light .chat-header        { background: #f4f7f4; }
+body.light .suggestion-chip    { background: #eef2ee; color: #3a5c3b; border-color: rgba(74,163,84,0.3); }
+body.light .stat-label         { color: #3a5c3b; }
+body.light .chart-title        { color: #3a5c3b; }
+body.light .timeline-day       { color: #7a9e7b; }
+body.light .pull-quote         { background: #f4f7f4; }
+body.light .pull-quote__text   { color: #0f1a10; }
+body.light .tips-title         { color: #3a5c3b; }
+body.light .tips-list          { color: #3a5c3b; }
+body.light .chat-panel-label   { color: #3a5c3b; }
+
+/* ══════════════════════════════════════════════════════════
+   LIVE FACTS
+══════════════════════════════════════════════════════════ */
+.live-facts-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.live-facts-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.fact-card .fact-source {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-decoration: none;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+  width: 100%;
+}
+.fact-card .fact-source:hover { text-decoration: underline; }
 
 /* ══════════════════════════════════════════════════════════
    UTILITIES
@@ -1097,5 +1386,265 @@ body.light .dropzone {
   background: rgba(74,163,84,0.25);
   border: 1px solid rgba(74,163,84,0.6);
   color: #7eda88;
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
+}
+/* ============================================================
+   USER DROPDOWN (Added for Auth)
+============================================================ */
+.user-menu-container {
+  position: relative;
+}
+
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem;
+  border-radius: 100px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.user-menu-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  padding-right: 0.25rem;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  width: 220px;
+  background: rgba(25, 32, 25, 0.95);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.5rem 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  display: none;
+  z-index: 1001;
+}
+
+.user-dropdown.show {
+  display: block;
+}
+
+.dropdown-header {
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.dropdown-header strong {
+  color: var(--text-primary);
+  display: block;
+  margin-top: 0.2rem;
+  word-break: break-all;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.25rem 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: background var(--transition);
+}
+
+.dropdown-item:hover {
+  background: var(--bg-3);
+}
+
+.dropdown-item svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.dropdown-item.text-danger {
+  color: var(--danger);
+}
+.dropdown-item.text-danger svg {
+  color: var(--danger);
+}
+
+/* Light theme overrides for dropdown */
+body.light .user-menu-btn { background: #f4f7f4; border-color: rgba(74,163,84,0.3); }
+body.light .user-name { color: #0f1a10; }
+body.light .user-dropdown { background: rgba(255, 255, 255, 0.98); border-color: rgba(74,163,84,0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+body.light .dropdown-header { color: #3a5c3b; }
+body.light .dropdown-header strong { color: #0f1a10; }
+body.light .dropdown-item { color: #0f1a10; }
+body.light .dropdown-item:hover { background: #eef2ee; }
+
+@media (max-width: 768px) {
+  .user-name { display: none; }
+  .user-menu-btn { padding: 0.25rem; }
+}
+.upload-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.btn-upload-option {
+  background: rgba(3, 61, 250, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #d1fae5;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-upload-option:hover {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+/* ══════════════════════════════════════════════════════════
+   PWA — offline indicator, install banner, offline notices
+   Styled to match the existing dark / green glass UI.
+══════════════════════════════════════════════════════════ */
+
+/* Slim bar under the navbar, only visible when the device is offline */
+.offline-bar {
+  position: fixed;
+  top: var(--nav-h);
+  left: 0; right: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffe4b3;
+  background: rgba(224, 154, 58, 0.16);
+  border-bottom: 1px solid rgba(224, 154, 58, 0.4);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.offline-bar[hidden] { display: none; }
+.offline-bar svg { width: 16px; height: 16px; }
+
+/* Custom "Install Kahawa Smart" banner */
+.install-banner {
+  position: fixed;
+  left: 1rem; right: 1rem;
+  bottom: 1rem;
+  z-index: 1600;
+  max-width: 460px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-lg);
+  background: rgba(22, 30, 23, 0.92);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+.install-banner[hidden] { display: none; }
+.install-banner__icon img { border-radius: 12px; display: block; }
+.install-banner__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+}
+.install-banner__text strong { color: var(--text-primary); font-size: 0.95rem; }
+.install-banner__text span { color: var(--text-secondary); font-size: 0.8rem; line-height: 1.35; }
+.install-banner__actions { display: flex; flex-direction: column; gap: 0.4rem; }
+.install-banner__actions .btn { padding: 0.5rem 0.9rem; font-size: 0.85rem; white-space: nowrap; }
+
+@media (max-width: 480px) {
+  .install-banner { flex-wrap: wrap; }
+  .install-banner__actions { flex-direction: row; width: 100%; }
+  .install-banner__actions .btn { flex: 1; justify-content: center; }
+}
+
+/* Offline notice bubble inside the advisor chat */
+.msg-bubble--offline {
+  background: rgba(224, 154, 58, 0.12) !important;
+  border: 1px solid rgba(224, 154, 58, 0.35);
+  color: #ffe4b3 !important;
+}
+
+/* Offline notice inside the leaf-scan result card */
+.offline-note { text-align: center; padding: 0.5rem 0.25rem; }
+.offline-note__icon {
+  width: 52px; height: 52px;
+  margin: 0 auto 0.75rem;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(224, 154, 58, 0.14);
+  color: var(--warning);
+}
+.offline-note__icon svg { width: 26px; height: 26px; }
+.offline-note strong { display: block; color: var(--text-primary); margin-bottom: 0.4rem; }
+.offline-note p { color: var(--text-secondary); font-size: 0.875rem; line-height: 1.5; }
+
+/* ══════════════════════════════════════════════════════════
+   FARMER-FRIENDLY FIELD ERRORS (shared by all pages)
+   A short plain-language explanation shown directly under a
+   field, alongside the existing red error accent. Always
+   visible when present — never behind hover/tooltip.
+══════════════════════════════════════════════════════════ */
+.field-error {
+  display: none;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  color: var(--danger);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+.field-error.visible { display: flex; }
+.field-error svg { width: 14px; height: 14px; flex-shrink: 0; }
+.field-error span { flex: 1; }
+
+/* Red border on the field itself, overriding the focus accent */
+.form-input.input-error,
+.input-error {
+  border-color: var(--danger) !important;
+}
+.form-input.input-error:focus {
+  box-shadow: 0 0 0 2px rgba(224, 92, 92, 0.25) !important;
 }

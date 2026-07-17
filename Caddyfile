@@ -1,0 +1,8 @@
+# Replace api.yourdomain.com with the real domain (or DuckDNS subdomain) whose
+# DNS A record points to this VPS's IP. Caddy will automatically obtain and
+# renew a free Let's Encrypt HTTPS certificate for it — no extra steps.
+#
+# The frontend then calls the API at https://api.yourdomain.com
+api.yourdomain.com {
+    reverse_proxy 127.0.0.1:8080
+}

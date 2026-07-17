@@ -1,0 +1,304 @@
+/* ============================================================
+   Kahawa Smart — Authentication Styles
+   Reuses existing CSS variables and glassmorphism design
+============================================================ */
+
+.auth-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+    background: var(--bg-0);
+}
+
+/* Reusing the dark overlay concept from style.css */
+.auth-page::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('bg-home.jpg');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.15;
+    z-index: 0;
+}
+
+.auth-card {
+    background: rgba(25, 32, 25, 0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 440px;
+    z-index: 1;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-logo {
+    width: 48px;
+    height: 48px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: #000;
+}
+
+.auth-logo svg {
+    width: 24px;
+    height: 24px;
+}
+
+.auth-title {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+    position: relative;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.form-input {
+    width: 100%;
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    outline: none;
+    transition: all var(--transition);
+    font-family: var(--font-body);
+}
+
+.form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.input-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.toggle-pwd {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color var(--transition);
+    display: flex;
+}
+
+.toggle-pwd:hover {
+    color: var(--accent);
+}
+
+.toggle-pwd svg {
+    width: 16px;
+    height: 16px;
+}
+
+.auth-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.checkbox-group input {
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.forgot-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color var(--transition);
+}
+
+.forgot-link:hover {
+    color: #5bbf66;
+    text-decoration: underline;
+}
+
+.auth-btn {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.auth-footer {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.auth-footer a {
+    color: var(--accent);
+    font-weight: 600;
+    margin-left: 0.25rem;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Validation & Errors */
+.error-msg {
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+    display: none;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.error-msg.visible {
+    display: flex;
+}
+
+/* Password Strength Indicator */
+.pwd-strength-container {
+    margin-top: 0.5rem;
+    display: none;
+}
+
+.pwd-bars {
+    display: flex;
+    gap: 4px;
+    height: 4px;
+}
+
+.pwd-bar {
+    flex: 1;
+    background: var(--bg-3);
+    border-radius: 2px;
+    transition: background 0.3s ease;
+}
+
+.pwd-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+    text-align: right;
+    display: block;
+}
+
+/* Light Theme Overrides */
+body.light .auth-page::before {
+    background: rgba(244, 247, 244, 0.88);
+}
+body.light .auth-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(74, 163, 84, 0.3);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+}
+body.light .auth-title { color: #0f1a10; }
+body.light .auth-subtitle { color: #3a5c3b; }
+body.light .form-input {
+    background: #f4f7f4;
+    color: #0f1a10;
+    border-color: rgba(74, 163, 84, 0.3);
+}
+
+/* ============================================================
+   PASSWORD RESET SCREENS
+============================================================ */
+
+/* Only one auth card shows at a time */
+.auth-card[hidden] { display: none; }
+
+/* "Demo mode" notice for the marker — soft blue info card, kept
+   deliberately calm (not a warning colour) so it reads as an
+   explanation, not a bug. */
+.demo-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin: 1.25rem 0 0.25rem;
+    padding: 0.75rem 0.9rem;
+    background: rgba(91, 155, 213, 0.10);
+    border: 1px solid rgba(91, 155, 213, 0.30);
+    border-radius: 10px;
+    color: #bcd6ef;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+.demo-notice svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #7fb2e6;
+}
+
+/* "Back to login" link — reuses the accent link colour */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--accent);
+    font-weight: 600;
+}
+.back-link svg { width: 14px; height: 14px; }
+
+body.light .demo-notice {
+    background: rgba(52, 120, 190, 0.10);
+    border-color: rgba(52, 120, 190, 0.28);
+    color: #2f5b86;
+}
+body.light .demo-notice svg { color: #3478be; }

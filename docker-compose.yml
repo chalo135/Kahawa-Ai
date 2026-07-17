@@ -1,0 +1,44 @@
+# Runs the Kahawa Smart API on the VPS: builds the image, keeps it always-on,
+# mounts a persistent volume for the SQLite DB, and reads secrets from
+# .env.production (which you create on the server — never commit it).
+#
+# Caddy sits in front and gives automatic HTTPS (free Let's Encrypt cert) so
+# your HTTPS frontend on Netlify/Vercel can call the API. If you don't have a
+# domain yet, you can comment out the whole `caddy` service and test over
+# http://<server-ip>:8080 first (see the guide).
+
+services:
+  api:
+    build: .
+    image: kahawa-smart-api
+    restart: unless-stopped
+    # Bind to localhost only — the app is NOT exposed to the internet directly;
+    # Caddy proxies to it. (For an HTTP-only test without Caddy, change this to
+    # "8080:8080" to reach it at http://<server-ip>:8080.)
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file:
+      - .env.production
+    environment:
+      # DB lives on the persistent volume so it survives restarts/redeploys.
+      DB_PATH: /data/kahawa.db
+    volumes:
+      - kahawa_data:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  kahawa_data:
+  caddy_data:
+  caddy_config:

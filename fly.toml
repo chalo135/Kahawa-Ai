@@ -1,0 +1,50 @@
+# Fly.io configuration for the Kahawa Smart API (backend only).
+#
+# `fly launch` may rewrite `app` and `primary_region` to match what you pick.
+# The important, deliberate settings are the volume mount, the always-on VM,
+# and the memory headroom for TensorFlow — keep those.
+
+app = "kahawa-smart-api"          # change to your chosen app name
+primary_region = "jnb"            # Johannesburg — closest Fly region to Kenya
+
+[build]
+
+# Non-secret runtime config. DB_PATH points SQLite at the mounted volume so the
+# users table survives deploys and restarts. (db.py already reads DB_PATH via
+# os.getenv, defaulting to "kahawa.db" locally — no code change needed.)
+# Secrets (GROQ_API_KEY, JWT_SECRET, MODEL_PATH, etc.) are NOT here — set them
+# with `fly secrets set` so they never land in the image or this file.
+[env]
+  DB_PATH = "/data/kahawa.db"
+
+# Persistent volume. Create it once with:
+#   fly volumes create kahawa_data --size 1 --region jnb
+# `source` must match the volume name; it is mounted at /data, where DB_PATH lives.
+[[mounts]]
+  source = "kahawa_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080            # matches EXPOSE / uvicorn --port 8080
+  force_https = true
+  # Always-on: the app runs a long-lived background scraper thread in-process,
+  # so the VM must never scale to zero or be treated as serverless.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  # Health check hits the app's own /health route. Generous grace period because
+  # loading the 23 MB Keras model at startup takes a little time.
+  [[http_service.checks]]
+    method = "GET"
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "60s"
+
+# VM sizing. TensorFlow + the loaded model need real memory headroom; 2048 MB
+# is the safe choice (1024 MB is the floor). Adjust cpus/memory as needed.
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "2048mb"

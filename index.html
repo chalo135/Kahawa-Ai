@@ -2,8 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>Kahawa Smart — Coffee Leaf Disease AI</title>
+  <meta name="description" content="AI coffee leaf disease detection and treatment advice for smallholder farmers."/>
+
+  <!-- PWA: installable + themed on Android Chrome and iOS Safari -->
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#080c0a"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
+  <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Kahawa"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -12,87 +24,114 @@
      NAVIGATION
 ══════════════════════════════════════════════════════════ -->
 <nav class="navbar">
+
   <div class="nav-brand">
-    <div class="nav-logo"><i data-lucide="leaf" style="width:16px;height:16px;color:#000;display:block"></i></div>
-    <span class="nav-title">Kahawa<span>Smart</span></span>
+    <div class="nav-logo">
+      <i data-lucide="leaf"></i>
+    </div>
+    <span class="nav-title">Kahawa<span>AI</span></span>
   </div>
-  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">🌙</button>
-  <button class="hamburger" aria-label="Menu">
-    <span></span><span></span><span></span>
-  </button>
+
   <ul class="nav-links">
-    <li><a href="#" data-page="page-home"><i data-lucide="home"></i> Home</a></li>
-    <li><a href="#" data-page="page-scan"><i data-lucide="scan-line"></i> Leaf Scan</a></li>
-    <li><a href="#" data-page="page-about"><i data-lucide="bar-chart-2"></i> About & Analytics</a></li>
-    <li><a href="#" data-page="page-facts"><i data-lucide="coffee"></i> Coffee Facts</a></li>
+    <li>
+     <a href="#" data-page="page-home">Home</a>
+    </li>
+
+    <li>
+      <a href="#" data-page="page-scan">Leaf Scan</a>
+    </li>
+
+    <li>
+      <a href="#" data-page="page-about">Analytics</a>
+    </li>
+
+    <li>
+      <a href="#" data-page="page-facts">Coffee Facts</a>
+    </li>
   </ul>
+
+  <div class="nav-right">
+
+    <div class="user-menu-container">
+      <button class="user-menu-btn" id="user-menu-btn">
+        <div class="user-avatar" id="nav-user-avatar">U</div>
+        <span class="user-name" id="nav-user-name">User</span>
+        <i data-lucide="chevron-down"></i>
+      </button>
+
+      <div class="user-dropdown" id="user-dropdown">
+        <div class="dropdown-header">
+          Signed in as<br>
+          <strong id="nav-user-email">email@domain.com</strong>
+        </div>
+
+        <div class="dropdown-divider"></div>
+
+        <a href="#" class="dropdown-item">
+          <i data-lucide="user"></i>
+          Profile
+        </a>
+
+        <a href="#" class="dropdown-item">
+          <i data-lucide="settings"></i>
+          Settings
+        </a>
+
+        <div class="dropdown-divider"></div>
+
+        <a href="#" class="dropdown-item text-danger" id="logout-btn">
+          <i data-lucide="log-out"></i>
+          Logout
+        </a>
+      </div>
+    </div>
+
+    <button class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+  </div>
+
 </nav>
 
-<!-- ══════════════════════════════════════════════════════════
-     PAGE 1: HOME
-══════════════════════════════════════════════════════════ -->
+
 <div class="page active" id="page-home">
   <div class="container">
 
     <section class="section section--hero">
-      <div class="hero-grid">
-
-        <!-- Hero text -->
-        <div>
-          <div class="badge badge-green badge--spaced">AI-Powered Coffee Disease Detection</div>
-          <h1 class="section-title hero-title">
-            Protect Your<br><span class="accent">Coffee Harvest</span><br>with AI
-          </h1>
-          <p class="hero-description">
-            Kahawa Smart uses deep learning to detect coffee leaf rust instantly.
-            Upload a photo of your leaf and get a diagnosis in seconds — in English or Swahili.
-          </p>
-          <div class="hero-actions">
-            <button class="btn btn-primary" onclick="navigateTo('page-scan')"><i data-lucide="scan-line"></i> Scan a Leaf</button>
-            <button class="btn btn-ghost" onclick="navigateTo('page-about')"><i data-lucide="bar-chart-2"></i> See Analytics</button>
+      <div class="hero-centered">
+        <div class="badge badge-green badge--spaced">AI-Powered Leaf rust Detection</div>
+        <h1 class="section-title hero-title">
+          Protect Your<br><span class="accent">Coffee Harvest</span><br>with AI
+        </h1>
+        <p class="hero-description">
+          Kahawa AI uses deep learning to detect coffee leaf rust instantly.
+          Upload a photo of your leaf and get a diagnosis in seconds — in English or Swahili.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn--lg" onclick="navigateTo('page-scan')">
+            <i data-lucide="scan-line"></i> Scan a Leaf Now
+          </button>
+          <button class="btn btn-ghost" onclick="navigateTo('page-about')">
+            <i data-lucide="bar-chart-2"></i> See Analytics
+          </button>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat__value hero-stat__value--accent">94%</div>
+            <div class="hero-stat__label">Detection accuracy</div>
           </div>
-          <div class="hero-stats">
-            <div class="hero-stat">
-              <div class="hero-stat__value hero-stat__value--accent">94%</div>
-              <div class="hero-stat__label">Detection accuracy</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat__value hero-stat__value--accent2">&lt;2s</div>
-              <div class="hero-stat__label">Response time</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat__value hero-stat__value--primary">2</div>
-              <div class="hero-stat__label">Languages</div>
-            </div>
+          <div class="hero-stat">
+            <div class="hero-stat__value hero-stat__value--accent2">&lt;2s</div>
+            <div class="hero-stat__label">Response time</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat__value hero-stat__value--primary">2</div>
+            <div class="hero-stat__label">Languages</div>
           </div>
         </div>
-
-        <!-- Home chat -->
-        <div>
-          <div class="chat-window">
-            <div class="chat-header">
-              <div class="chat-avatar">KS</div>
-              <div>
-                <div class="chat-name">Kahawa AI Advisor</div>
-                <div class="chat-status">Online — ready to help</div>
-              </div>
-            </div>
-            <div class="chat-messages" id="home-chat-messages"></div>
-            <div class="chat-input-row">
-              <textarea class="chat-input" id="home-chat-input"
-                placeholder="Ask about coffee diseases... (English or Swahili)" rows="1"></textarea>
-              <button class="chat-send" id="home-chat-send" aria-label="Send"><i data-lucide="send"></i></button>
-            </div>
-          </div>
-          <!-- Suggestion chips -->
-          <div class="suggestion-chips">
-            <button class="suggestion-chip">What is leaf rust?</button>
-            <button class="suggestion-chip">Dawa gani nitatumia?</button>
-            <button class="suggestion-chip">How to prevent rust?</button>
-            <button class="suggestion-chip">Best time to spray?</button>
-          </div>
-        </div>
-
       </div>
     </section>
 
@@ -128,14 +167,14 @@
 <div class="page" id="page-scan">
   <div class="container">
     <section class="section">
-      <div class="badge badge-green badge--spaced">Leaf Disease Scanner</div>
-      <h1 class="section-title">Scan Your Coffee Leaf</h1>
-      <p class="section-sub">Upload a clear photo of a coffee leaf — we will detect leaf rust instantly.</p>
+      <div class="badge badge-green badge--spaced">AI Leaf Advisor</div>
+      <h1 class="section-title">Scan & Get Expert Advice</h1>
+      <p class="section-sub">Upload a leaf photo for instant disease detection, then chat with the AI advisor for a full treatment plan.</p>
 
       <div class="scan-grid">
 
-        <!-- Upload + Result -->
-        <div>
+        <!-- Upload + Result (secondary sidebar on desktop, first on mobile) -->
+        <div class="scan-col scan-col--upload">
           <div class="dropzone" id="scan-dropzone" role="button" tabindex="0" aria-label="Upload leaf image">
             <div id="scan-drop-icon">
               <div class="dropzone-icon"><i data-lucide="upload-cloud"></i></div>
@@ -146,29 +185,41 @@
             <img id="scan-preview" class="hidden" alt="Leaf preview" class="scan-preview-img"/>
           </div>
           <input type="file" id="scan-file-input" accept="image/*" hidden/>
+          <div class="scan-upload-actions">
+  <button type="button" id="scan-camera-btn" class="btn-upload-option">📸 Take Photo</button>
+  <button type="button" id="scan-gallery-btn" class="btn-upload-option">🖼️ Choose File</button>
+</div>
+          <!-- Inline, plain-language error if the chosen photo is wrong type/too big -->
+          <div id="scan-upload-error" class="field-error"><i data-lucide="alert-circle"></i><span></span></div>
+<input type="file" id="scan-camera-input" accept="image/*" capture="environment" hidden>
 
           <div class="scan-actions">
             <button class="btn btn-ghost" id="scan-clear-btn" disabled>Clear</button>
-            <button class="btn btn-primary" id="scan-btn" disabled>🔍 Analyse Leaf</button>
+            <button class="btn btn-primary" id="scan-btn" disabled><i data-lucide="search"></i> Analyse Leaf</button>
           </div>
 
           <div class="result-card hidden" id="scan-result"></div>
 
-          <div class="card tips-card">
-            <h3 class="tips-title">📷 Photo Tips for Best Results</h3>
+          <!-- Collapsible accordion — native <details>, no JS needed. Keeps
+               .tips-card / .tips-title / .tips-list classes (styling + GSAP). -->
+          <details class="card tips-card">
+            <summary class="tips-title">
+              Photo Tips for Best Results
+              <svg class="tips-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
             <ul class="tips-list">
-              <li>✅ Use natural daylight — avoid flash</li>
-              <li>✅ Hold phone 20–30cm from the leaf</li>
-              <li>✅ Fill the frame with the leaf</li>
-              <li>✅ Keep the camera steady — no blur</li>
-              <li>✅ Capture both sides of the leaf if possible</li>
-              <li>❌ Avoid dark or heavily shadowed photos</li>
+              <li class="tip-good">Use natural daylight — avoid flash</li>
+              <li class="tip-good">Hold phone 20–30cm from the leaf</li>
+              <li class="tip-good">Fill the frame with the leaf</li>
+              <li class="tip-good">Keep the camera steady — no blur</li>
+              <li class="tip-good">Capture both sides of the leaf if possible</li>
+              <li class="tip-bad">Avoid dark or heavily shadowed photos</li>
             </ul>
-          </div>
+          </details>
         </div>
 
-        <!-- Scan page AI chat -->
-        <div>
+        <!-- Scan page AI chat (primary column on desktop) -->
+        <div class="scan-col scan-col--chat">
           <div class="chat-panel-label">AI Treatment Advisor</div>
           <div class="chat-window chat-window--tall">
             <div class="chat-header">
@@ -181,14 +232,17 @@
             <div class="chat-messages" id="scan-chat-messages">
               <div class="msg ai">
                 <div class="msg-avatar" style="background:var(--accent);color:#000">KS</div>
-                <div class="msg-bubble">Upload a leaf photo and click Analyse. I will give you a full diagnosis and treatment plan. You can also ask me questions directly.</div>
+                <div class="msg-bubble">Habari! I'm your Kahawa AI advisor. Scan a leaf for an instant diagnosis, or just ask me anything about your coffee farm — I'm here to help.</div>
               </div>
             </div>
             <div class="chat-input-row">
-              <textarea class="chat-input" id="scan-chat-input"
-                placeholder="Ask about your leaf result..." rows="1"></textarea>
-              <button class="chat-send" id="scan-chat-send" aria-label="Send"><i data-lucide="send"></i></button>
+              <textarea class="chat-input" id="scan-chat-input" maxlength="4000"
+                placeholder="Ask me anything about your coffee farm..." rows="1"></textarea>
+              <button class="chat-send" id="scan-chat-send" aria-label="Send message">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg>
+              </button>
             </div>
+            <div class="chat-hint" id="scan-chat-hint" hidden>Press Enter to send</div>
           </div>
         </div>
 
@@ -309,7 +363,7 @@
           </div>
           <div class="card tech-card">
             <span class="tech-label">AI Advisor</span>
-            <span class="badge badge-gold">Claude AI</span>
+            <span class="badge badge-gold">Llama 3 via Ollama</span>
           </div>
           <div class="card tech-card">
             <span class="tech-label">Dataset</span>
@@ -331,6 +385,27 @@
       <div class="badge badge-gold badge--spaced">Did You Know?</div>
       <h1 class="section-title">Coffee & Leaf Rust Facts</h1>
       <p class="section-sub">Fascinating facts about the world's favourite drink and its greatest enemy</p>
+
+      <!-- Full disease guide — rendered from window.DISEASES by renderDiseaseGuide() in app.js -->
+      <div id="disease-guide"></div>
+
+      <!-- Live facts from Wikipedia (populated by JS) -->
+      <div id="live-facts-section" class="hidden">
+        <div class="live-facts-header">
+          <h2 class="section-title" style="font-size:1.5rem">Live Research Updates</h2>
+          <span id="live-facts-timestamp" class="badge badge-green"></span>
+        </div>
+        <p class="section-sub" style="margin-bottom:1.5rem">Latest facts pulled from Wikipedia — updated every 24 hours</p>
+        <div id="live-facts-grid" class="facts-grid" style="margin-bottom:2.5rem"></div>
+        <div class="divider" style="margin-bottom:2.5rem"></div>
+        <h2 class="section-title" style="font-size:1.5rem;margin-bottom:0.5rem">Essential Facts</h2>
+        <p class="section-sub">Core knowledge every coffee farmer should know</p>
+      </div>
+
+      <div id="live-facts-loading" class="live-facts-loading">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <span>Loading live updates...</span>
+      </div>
 
       <div class="facts-grid">
         <div class="fact-card">
@@ -407,12 +482,50 @@
   </div>
 </div>
 
-<!-- Scripts: order matters — GSAP first, then Chart.js, then app.js last, Lucide last to render icons -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js"></script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script>lucide.createIcons();</script>
+<!-- Floating Kahawa Advisor button -->
+<div class="advisor-fab-wrap" id="advisor-fab-wrap">
+  <span class="advisor-fab__label">Kahawa AI</span>
+  <button class="advisor-fab" id="advisor-fab" aria-label="Open Kahawa AI">
+    <svg class="advisor-fab__icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <!-- Hat brim -->
+      <ellipse cx="20" cy="13.5" rx="16" ry="4.5" fill="#000"/>
+      <!-- Hat crown -->
+      <rect x="13" y="5" width="14" height="10" rx="3.5" fill="#000"/>
+      <!-- Head -->
+      <circle cx="20" cy="22" r="6.5" fill="#000"/>
+      <!-- Shoulders -->
+      <path d="M4 40 C4 30 36 30 36 40 Z" fill="#000"/>
+    </svg>
+  </button>
+</div>
+
+<!-- Slim offline indicator — shown only when the device loses signal -->
+<div class="offline-bar" id="offline-bar" role="status" aria-live="polite" hidden>
+  <i data-lucide="wifi-off"></i>
+  <span>You're offline — saved pages still work</span>
+</div>
+
+<!-- Custom install prompt (styled to match the app, not the raw browser bar) -->
+<div class="install-banner" id="install-banner" hidden>
+  <div class="install-banner__icon">
+    <img src="icon-192.png" alt="" width="44" height="44"/>
+  </div>
+  <div class="install-banner__text">
+    <strong>Install Kahawa Smart</strong>
+    <span>Add it to your home screen to open it fast, even with weak signal.</span>
+  </div>
+  <div class="install-banner__actions">
+    <button class="btn btn-ghost" id="install-dismiss">Not now</button>
+    <button class="btn btn-primary" id="install-accept">Install</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="auth.js" defer></script>
+<script src="js/data/diseases.js" defer></script>
+<script src="app.js" defer></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
 </body>
-</html>                                                                                             ,,çççççççç,,,,,,,,,
+</html>

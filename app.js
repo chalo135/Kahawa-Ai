@@ -4,9 +4,25 @@
    Animations: GSAP + ScrollTrigger
 ============================================================ */
 
-// ── CONSTANTS ─────────────────────────────────────────────
-const API_URL  = 'http://localhost:8000/predict';
-const CHAT_URL = 'http://localhost:8000/chat';
+// ── BACKEND URL ───────────────────────────────────────────
+// Dev (localhost/127.0.0.1): talk to the backend on the SAME hostname the page
+//   is served from, on port 8000. (127.0.0.1 and localhost are different
+//   "sites" to the browser, so mixing them drops the SameSite=Lax session
+//   cookie -> permanent 401 login loop. Mirroring the hostname avoids that.)
+// Production: default to SAME ORIGIN (empty prefix -> relative URLs such as
+//   /api/chat). This matches the recommended VPS setup where nginx serves the
+//   frontend AND proxies /api to uvicorn on one domain — no config, and no
+//   placeholder URL to forget.
+// Split hosting (API on a DIFFERENT domain)? Set window.__KAHAWA_BACKEND__ to
+//   its https URL in an inline <script> before this file loads.
+const _h = window.location.hostname;
+const BACKEND_URL = (_h === 'localhost' || _h === '127.0.0.1' || _h === '')
+  ? `http://${_h || 'localhost'}:8000`
+  : (window.__KAHAWA_BACKEND__ || '');   // '' = same origin
+
+const API_URL    = `${BACKEND_URL}/predict`;
+const CHAT_URL   = `${BACKEND_URL}/api/chat`;   // RAG chat (grounded in the Knowledge base)
+const HEALTH_URL = `${BACKEND_URL}/health`;
 
 // ── GSAP SETUP ────────────────────────────────────────────
 gsap.registerPlugin(ScrollTrigger);
@@ -15,18 +31,12 @@ gsap.registerPlugin(ScrollTrigger);
    NAVIGATION
 ============================================================ */
 function navigateTo(pageId) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(pageId).classList.add('active');
-  document.querySelectorAll('.nav-links a').forEach(a => {
-    a.classList.toggle('active', a.dataset.page === pageId);
-  });
-  document.querySelector('.nav-links').classList.remove('open');
-  window.scrollTo(0, 0);
-  animatePageIn(pageId);
-  if (pageId === 'page-about') initCharts();
-}
-
-document.querySelector('.hamburger').addEventListener('click', () => {
+  // Guard against undefined/null
+  if (!pageId) {
+    console.warn("navigateTo called with no pageId");
+    return;
+  }
+  document.querySelector('.hamburger').addEventListener('click', () => {
   document.querySelector('.nav-links').classList.toggle('open');
 });
 
@@ -37,6 +47,42 @@ document.querySelectorAll('.nav-links a').forEach(a => {
   });
 });
 
+  const targetPage = document.getElementById(pageId);
+  
+  // Guard against missing element
+  if (!targetPage) {
+    console.error(`Page not found: #${pageId}`);
+    return;
+  }
+
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  
+  // Show target page
+  targetPage.classList.add('active');
+  
+  // Update active nav link
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.classList.toggle('active', a.dataset.page === pageId);
+  });
+  
+  // Close mobile menu
+  document.querySelector('.nav-links').classList.remove('open');
+  
+  // Scroll to top
+  window.scrollTo(0, 0);
+  
+  // Animate in
+  animatePageIn(pageId);
+  
+  // Page-specific init
+  if (pageId === 'page-about') initCharts();
+  if (pageId === 'page-facts') loadLiveFacts();
+  
+  // Hide FAB on scan page
+  const fab = document.getElementById('advisor-fab-wrap');
+  if (fab) fab.style.display = pageId === 'page-scan' ? 'none' : 'flex';
+}
 /* ============================================================
    PAGE ANIMATIONS
 ============================================================ */
@@ -65,19 +111,19 @@ function animateHome() {
       { opacity: 1, y: 0, duration: 0.5 }, '-=0.35')
     .fromTo('.hero-stat',
       { opacity: 0, y: 16 },
-      { opacity: 1, y: 0, duration: 0.5, stagger: 0.12 }, '-=0.3')
-    .fromTo('.chat-window',
-      { opacity: 0, x: 40 },
-      { opacity: 1, x: 0, duration: 0.7 }, '-=0.6')
-    .fromTo('.suggestion-chip',
-      { opacity: 0, scale: 0.85 },
-      { opacity: 1, scale: 1, duration: 0.35, stagger: 0.07 }, '-=0.3');
+      { opacity: 1, y: 0, duration: 0.5, stagger: 0.12 }, '-=0.3');
 
   gsap.fromTo('.steps-grid .card',
     { opacity: 0, y: 40 },
     { opacity: 1, y: 0, duration: 0.6, stagger: 0.15, ease: 'power2.out',
       scrollTrigger: { trigger: '.steps-grid', start: 'top 85%' }
     }
+  );
+
+  // Animate FAB in on home page
+  gsap.fromTo('#advisor-fab-wrap',
+    { opacity: 0, scale: 0.5, y: 20 },
+    { opacity: 1, scale: 1, y: 0, duration: 0.6, delay: 1.2, ease: 'back.out(1.7)' }
   );
 }
 
@@ -148,17 +194,57 @@ gsap.fromTo('.navbar',
 ============================================================ */
 const chatHistory = [];
 
+// Escape HTML special characters before any text goes into innerHTML.
+// Prevents XSS: without this, typing <img src=x onerror=...> into the
+// chat (or a malicious AI/backend reply containing HTML) would execute.
+function escapeHTML(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Convert the little markdown the model may still emit into safe HTML.
+// We escape everything FIRST (so raw model output can never inject HTML),
+// then re-introduce only the tags we control (<strong>, <br>).
+function renderChatText(text) {
+  let s = escapeHTML(text);
+  s = s.replace(/^\s{0,3}#{1,6}\s*(.+?)\s*$/gm, '<strong>$1</strong>'); // ## heading -> bold line
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');              // **bold** -> <strong>
+  s = s.replace(/^\s{0,3}[-*•]\s+/gm, '');                             // strip bullet markers, keep the text
+  s = s.replace(/`+/g, '');                                            // drop stray backticks
+  s = s.replace(/\n/g, '<br>');                                        // newlines -> line breaks
+  return s;
+}
+
+// "2:34 PM" — time only, in the user's locale.
+function formatTime(date = new Date()) {
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+// Smoothly keep the newest message in view.
+function scrollToBottom(container) {
+  container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+}
 
 function appendMessage(container, role, text) {
   const isUser = role === 'user';
   const div    = document.createElement('div');
   div.className = `msg ${isUser ? 'user' : 'ai'}`;
+  // User text is shown verbatim (escaped); AI text runs through the
+  // markdown-lite renderer so no raw ** or ## reaches the bubble.
+  const body = isUser ? escapeHTML(text).replace(/\n/g, '<br>') : renderChatText(text);
   div.innerHTML = `
     <div class="msg-avatar" style="${isUser ? 'background:var(--bg-3);color:var(--text-secondary)' : 'background:var(--accent);color:#000'}">${isUser ? 'Me' : 'KS'}</div>
-    <div class="msg-bubble">${text.replace(/\n/g, '<br>')}</div>
+    <div class="msg-content">
+      <div class="msg-bubble">${body}</div>
+      <div class="msg-time">${formatTime()}</div>
+    </div>
   `;
   container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
+  scrollToBottom(container);
   gsap.fromTo(div, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
   return div;
 }
@@ -168,13 +254,13 @@ function showTyping(container) {
   div.className = 'msg ai';
   div.id        = 'typing-indicator';
   div.innerHTML = `
-    <div class="msg-avatar">🌿</div>
+    <div class="msg-avatar" style="background:var(--accent);color:#000;font-size:10px;font-weight:700">KS</div>
     <div class="msg-bubble">
       <div class="typing-dots"><span></span><span></span><span></span></div>
     </div>
   `;
   container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
+  scrollToBottom(container);
   gsap.fromTo(div, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25 });
 }
 
@@ -182,6 +268,22 @@ function removeTyping() {
   const el = document.getElementById('typing-indicator');
   if (el) gsap.to(el, { opacity: 0, duration: 0.2, onComplete: () => el.remove() });
 }
+
+// Friendly, in-style "you're offline" bubble for the advisor chat.
+function appendOfflineNotice(container) {
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `
+    <div class="msg-avatar" style="background:var(--warning);color:#000;font-weight:700">!</div>
+    <div class="msg-bubble msg-bubble--offline">📴 You're offline. Here is general saved advice — reconnect to the internet for a full, personalised answer.</div>
+  `;
+  container.appendChild(div);
+  scrollToBottom(container);
+  gsap.fromTo(div, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25 });
+}
+
+// Shown (as a normal KS bubble) when we can't reach the AI right now.
+const CONNECTION_ERROR_MSG = "Sorry, I'm having trouble connecting right now. Please check your internet and try again in a moment.";
 
 // ── OFFLINE FALLBACK RESPONSES ────────────────────────────
 const FALLBACK_RESPONSES = [
@@ -193,7 +295,20 @@ const FALLBACK_RESPONSES = [
 ];
 let fallbackIndex = 0;
 
-async function askClaude(userMessage, messagesContainer, extraContext = '') {
+// Real connectivity check: actually ask the backend if it's alive, instead of
+// trusting navigator.onLine (which only reflects the device's local network,
+// not whether our FastAPI server is reachable). Used before showing any
+// "offline" message.
+async function isBackendReachable() {
+  try {
+    const res = await fetch(HEALTH_URL, { method: 'GET', cache: 'no-store' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function askLlama(userMessage, messagesContainer, extraContext = '') {
   chatHistory.push({ role: 'user', content: userMessage });
   showTyping(messagesContainer);
 
@@ -201,40 +316,79 @@ async function askClaude(userMessage, messagesContainer, extraContext = '') {
     const response = await fetch(CHAT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: chatHistory, context: extraContext }),
+      // Send only recent history: the backend caps requests at 50 messages
+      // (and only uses the last 8), so a long chat session must not grow
+      // the payload forever.
+      body: JSON.stringify({ messages: chatHistory.slice(-20), context: extraContext }),
     });
     if (!response.ok) throw new Error(`Backend error ${response.status}`);
     const data  = await response.json();
     removeTyping();
+
+    // Backend reached us but the AI provider failed. Speak like part of the
+    // conversation, not a system error. Not pushed to chatHistory.
+    if (data.error) {
+      appendMessage(messagesContainer, 'ai', CONNECTION_ERROR_MSG);
+      return;
+    }
+
     const reply = data.reply || 'Samahani, kuna tatizo. Please try again.';
     chatHistory.push({ role: 'assistant', content: reply });
     appendMessage(messagesContainer, 'ai', reply);
     return;
   } catch (err) {
-    console.warn('Backend unavailable — using offline fallback:', err);
+    console.warn('Chat request failed:', err);
   }
 
-  // Offline fallback — cycles through pre-written expert advice
-  await new Promise(r => setTimeout(r, 900));
   removeTyping();
-  const reply = FALLBACK_RESPONSES[fallbackIndex % FALLBACK_RESPONSES.length];
-  fallbackIndex++;
-  chatHistory.push({ role: 'assistant', content: reply });
-  appendMessage(messagesContainer, 'ai', reply);
+
+  // Ping the backend to find out WHY the chat call failed, rather than
+  // trusting navigator.onLine. If the server truly can't be reached, fall
+  // back to saved general advice, clearly labelled as such.
+  const backendUp = await isBackendReachable();
+  if (!backendUp) {
+    await new Promise(r => setTimeout(r, 400));
+    appendOfflineNotice(messagesContainer);
+    const reply = FALLBACK_RESPONSES[fallbackIndex % FALLBACK_RESPONSES.length];
+    fallbackIndex++;
+    chatHistory.push({ role: 'assistant', content: reply });
+    appendMessage(messagesContainer, 'ai', reply);
+    return;
+  }
+
+  // Backend is up but this chat call still failed: a friendly connection
+  // message that reads like part of the conversation.
+  appendMessage(messagesContainer, 'ai', CONNECTION_ERROR_MSG);
 }
 
 function setupChat(inputId, sendId, messagesId, extraContextFn = null) {
   const input    = document.getElementById(inputId);
   const send     = document.getElementById(sendId);
   const messages = document.getElementById(messagesId);
+  const hint     = document.getElementById(inputId.replace('-input', '-hint'));
+
+  // Lock the input while the advisor is replying so the farmer can't fire
+  // several messages before the first is answered; unlock when done.
+  function setBusy(busy) {
+    input.disabled = busy;
+    send.disabled  = busy;
+    if (busy && hint) hint.hidden = true;
+  }
 
   async function submit() {
     const text = input.value.trim();
-    if (!text) return;
+    if (!text || input.disabled) return;
     input.value = '';
     input.style.height = 'auto';
+    if (hint) hint.hidden = true;
     appendMessage(messages, 'user', text);
-    await askClaude(text, messages, extraContextFn ? extraContextFn() : '');
+    setBusy(true);
+    try {
+      await askLlama(text, messages, extraContextFn ? extraContextFn() : '');
+    } finally {
+      setBusy(false);
+      input.focus();
+    }
   }
 
   send.addEventListener('click', submit);
@@ -244,23 +398,15 @@ function setupChat(inputId, sendId, messagesId, extraContextFn = null) {
   input.addEventListener('input', () => {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    // Show "Press Enter to send" only while there's text to send.
+    if (hint) hint.hidden = input.value.trim() === '';
   });
 }
 
-/* ── HOME CHAT ───────────────────────────────────────────── */
-setupChat('home-chat-input', 'home-chat-send', 'home-chat-messages');
-
-appendMessage(
-  document.getElementById('home-chat-messages'), 'ai',
-  'Habari! I am Kahawa Smart AI.\n\nI can help you with:\n• Identifying coffee leaf diseases\n• Treatment and prevention advice\n• Coffee farming best practices\n\nAsk me anything — in English or Swahili!'
-);
-
-document.querySelectorAll('.suggestion-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    const input = document.getElementById('home-chat-input');
-    input.value = chip.textContent.trim();
-    gsap.to(chip, { scale: 0.92, duration: 0.1, yoyo: true, repeat: 1 });
-    document.getElementById('home-chat-send').click();
+/* ── FLOATING ADVISOR BUTTON ─────────────────────────────── */
+document.getElementById('advisor-fab').addEventListener('click', () => {
+  gsap.to('#advisor-fab', { scale: 0.88, duration: 0.1, yoyo: true, repeat: 1,
+    onComplete: () => navigateTo('page-scan')
   });
 });
 
@@ -300,10 +446,47 @@ dropzone.addEventListener('drop', e => {
   gsap.to(dropzone, { scale: 1, duration: 0.2 });
   if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
+const cameraInput = document.getElementById('scan-camera-input');
+const cameraBtn    = document.getElementById('scan-camera-btn');
+const galleryBtn   = document.getElementById('scan-gallery-btn');
+
+// stopPropagation is important — these buttons sit inside dropzone,
+// which already has its own click handler that opens fileInput
+cameraBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  cameraInput.click();
+});
+galleryBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  fileInput.click();
+});
+
+cameraInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+// Inline, plain-language upload error shown under the upload buttons —
+// visible immediately and stays until the farmer picks a valid photo.
+const uploadError = document.getElementById('scan-upload-error');
+function showUploadError(message) {
+  if (!uploadError) return;
+  uploadError.querySelector('span').textContent = message;
+  uploadError.classList.add('visible');
+}
+function clearUploadError() {
+  if (uploadError) uploadError.classList.remove('visible');
+}
 
 function handleFile(file) {
-  if (!file.type.startsWith('image/')) { showToast('Please upload an image file.'); return; }
-  if (file.size > 10 * 1024 * 1024)   { showToast('Image must be under 10MB.');    return; }
+  clearUploadError();
+  if (!file.type.startsWith('image/')) {
+    showUploadError('Please choose a photo file (JPG or PNG).');
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    showUploadError('That photo is too large — please use one under 10 MB.');
+    return;
+  }
   selectedFile = file;
   const reader = new FileReader();
   reader.onload = e => {
@@ -331,6 +514,7 @@ clearBtn.addEventListener('click', () => {
   scanBtn.disabled  = true;
   clearBtn.disabled = true;
   resultBox.classList.add('hidden');
+  clearUploadError();
   lastScanResult    = null;
 });
 
@@ -346,16 +530,117 @@ scanBtn.addEventListener('click', async () => {
     const data = await response.json();
     displayScanResult(data.predictions, data.warning);
   } catch (err) {
-    console.warn('Backend not available — showing demo result');
-    displayScanResult([
-      { label: 'coffee_leaf_rust',     confidence: 0.924 },
-      { label: 'healthy_coffee_leaf',  confidence: 0.076 },
-    ], null);
+    // Analysis failed. NEVER invent a diagnosis — a fake "rust detected" could
+    // send a farmer spraying fungicide they don't need. Show an honest error
+    // and let them retry. (Offline vs. server-error are worded differently.)
+    console.warn('Leaf analysis failed:', err);
+    if (!(await isBackendReachable())) {
+      showOfflineScanNotice();
+    } else {
+      showScanErrorNotice();
+    }
+    return;
   } finally {
     scanBtn.disabled  = false;
     scanBtn.innerHTML = 'Analyse Leaf';
   }
 });
+
+// Friendly, in-style offline message shown in the result card when a farmer
+// tries to analyse a leaf with no connection.
+function showOfflineScanNotice() {
+  resultBox.classList.remove('hidden');
+  resultBox.innerHTML = `
+    <div class="offline-note">
+      <div class="offline-note__icon"><i data-lucide="wifi-off"></i></div>
+      <strong>You need to be online to analyse a leaf</strong>
+      <p>Leaf analysis runs on our server. Please connect to the internet and tap "Analyse Leaf" again. The rest of the app still works offline.</p>
+    </div>`;
+  if (window.lucide) lucide.createIcons();
+  gsap.fromTo(resultBox, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+}
+
+// Shown when the server is reachable but the analysis itself failed. We do
+// NOT fabricate a result — an invented diagnosis is worse than no diagnosis.
+function showScanErrorNotice() {
+  resultBox.classList.remove('hidden');
+  resultBox.innerHTML = `
+    <div class="offline-note">
+      <div class="offline-note__icon"><i data-lucide="alert-triangle"></i></div>
+      <strong>We couldn't analyse that photo</strong>
+      <p>Something went wrong on our side. Please wait a moment and tap "Analyse Leaf" again. If it keeps failing, try a clearer, well-lit photo of a single leaf.</p>
+    </div>`;
+  if (window.lucide) lucide.createIcons();
+  gsap.fromTo(resultBox, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' });
+}
+
+/* ============================================================
+   DISEASE REFERENCE (rendered from window.DISEASES — see js/data/diseases.js)
+   Two views from one object: a collapsed disclosure under a scan result,
+   and the full guide on the Coffee Facts page.
+============================================================ */
+function rustData() {
+  return (window.DISEASES && window.DISEASES.coffee_leaf_rust) || null;
+}
+
+// (a) Collapsed "What rust looks like" disclosure for the scan result.
+//     Button toggle with aria-expanded/aria-controls; animation is pure CSS
+//     (grid-rows), so there is no GSAP timeline to leak across route changes.
+function renderScanSymptoms() {
+  const d = rustData();
+  if (!d) return '';
+  const items = d.symptoms.slice(0, 4)
+    .map(s => `<li>${escapeHTML(s)}</li>`)
+    .join('');
+  return `
+    <section class="symptom-disclosure" id="scan-symptoms">
+      <button type="button" class="symptom-disclosure__toggle" id="scan-symptoms-toggle"
+              aria-expanded="false" aria-controls="scan-symptoms-body">
+        <span>What rust looks like</span>
+        <svg class="symptom-disclosure__chevron" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="symptom-disclosure__body" id="scan-symptoms-body" role="region"
+           aria-labelledby="scan-symptoms-toggle">
+        <div class="symptom-disclosure__inner">
+          <ul class="symptom-list">${items}</ul>
+        </div>
+      </div>
+    </section>`;
+}
+
+function wireScanSymptomsToggle() {
+  const btn  = document.getElementById('scan-symptoms-toggle');
+  const sect = document.getElementById('scan-symptoms');
+  if (!btn || !sect) return;
+  btn.addEventListener('click', () => {
+    const open = sect.classList.toggle('is-open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+}
+
+// (b) Full guide for the Coffee Facts (learn) page.
+function renderDiseaseGuide() {
+  const host = document.getElementById('disease-guide');
+  const d = rustData();
+  if (!host || !d) return;
+  const list = (arr, extra = '') =>
+    `<ul class="symptom-list${extra}">${arr.map(s => `<li>${escapeHTML(s)}</li>`).join('')}</ul>`;
+  host.innerHTML = `
+    <article class="card disease-guide">
+      <header class="disease-guide__head">
+        <h2 class="disease-guide__name">${escapeHTML(d.name)}</h2>
+        <p class="disease-guide__meta"><em>${escapeHTML(d.scientificName)}</em> · ${escapeHTML(d.localName)}</p>
+      </header>
+      <h3 class="disease-guide__subhead">Symptoms</h3>
+      ${list(d.symptoms)}
+      <h3 class="disease-guide__subhead">When rust spreads fastest</h3>
+      ${list(d.favourableConditions)}
+      <h3 class="disease-guide__subhead">What it is NOT (look-alikes)</h3>
+      ${list(d.lookalikes, ' symptom-list--muted')}
+    </article>`;
+}
 
 function displayScanResult(predictions, warning = null) {
   resultBox.classList.remove('hidden');
@@ -373,7 +658,7 @@ function displayScanResult(predictions, warning = null) {
         <div class="badge ${isRust ? 'badge-red' : 'badge-green'}" style="margin-bottom:0.4rem">
           ${isRust ? 'Disease Detected' : isHealthy ? 'Healthy Leaf' : 'Analysis Complete'}
         </div>
-        <div class="result-label">${cleanLabel}</div>
+        <div class="result-label">${escapeHTML(cleanLabel)}</div>
       </div>
     </div>
     ${predictions.map((p, i) => {
@@ -383,7 +668,7 @@ function displayScanResult(predictions, warning = null) {
       return `
         <div style="margin-bottom:0.75rem">
           <div style="display:flex;justify-content:space-between;font-size:0.875rem;margin-bottom:0.3rem">
-            <span style="color:${i===0?'var(--text-primary)':'var(--text-secondary)'};font-weight:${i===0?600:400}">#${i+1} ${lbl}</span>
+            <span style="color:${i===0?'var(--text-primary)':'var(--text-secondary)'};font-weight:${i===0?600:400}">#${i+1} ${escapeHTML(lbl)}</span>
             <span style="color:${i===0?(isR?'var(--danger)':'var(--accent)'):'var(--text-muted)'};font-weight:600">${pct}%</span>
           </div>
           <div class="result-bar-track">
@@ -403,9 +688,13 @@ function displayScanResult(predictions, warning = null) {
     ${warning ? `
       <div style="margin-top:0.75rem;padding:1rem;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.35);border-radius:10px;font-size:0.875rem">
         <strong style="color:var(--accent2)">🔎 Model limitation notice</strong>
-        <p style="margin-top:0.4rem;color:var(--text-secondary)">${warning}</p>
+        <p style="margin-top:0.4rem;color:var(--text-secondary)">${escapeHTML(warning)}</p>
       </div>` : ''}
+    ${renderScanSymptoms()}
   `;
+
+  // Wire the collapsible disclosure just added to the result box.
+  wireScanSymptomsToggle();
 
   gsap.fromTo(resultBox,
     { opacity: 0, y: 20 },
@@ -434,9 +723,65 @@ function displayScanResult(predictions, warning = null) {
   );
 }
 
+// Pass the scan result string as chat context, or '' when no scan has been
+// done yet. Empty is important: the backend treats any non-empty context as
+// "a scan is available", so a placeholder like "No scan performed yet." would
+// wrongly flip the advisor into scan mode.
 setupChat('scan-chat-input', 'scan-chat-send', 'scan-chat-messages',
-  () => lastScanResult || 'No scan performed yet.'
+  () => lastScanResult || ''
 );
+
+/* ============================================================
+   LIVE FACTS
+============================================================ */
+async function loadLiveFacts() {
+  const section  = document.getElementById('live-facts-section');
+  const grid     = document.getElementById('live-facts-grid');
+  const loading  = document.getElementById('live-facts-loading');
+  const timestamp = document.getElementById('live-facts-timestamp');
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/facts`);
+    if (!response.ok) throw new Error(`Status ${response.status}`);
+    const data = await response.json();
+
+    grid.innerHTML = '';
+    data.facts.forEach(fact => {
+      const card = document.createElement('div');
+      card.className = 'fact-card';
+      // Escape all server-provided text, and only link out to Wikipedia —
+      // a compromised/altered facts feed can't inject HTML or javascript: URLs.
+      const safeUrl = String(fact.source_url || '').startsWith('https://en.wikipedia.org/')
+        ? fact.source_url : '#';
+      card.innerHTML = `
+        <div class="fact-icon"><i data-lucide="globe"></i></div>
+        <div class="fact-title">${escapeHTML(fact.title)}</div>
+        <div class="fact-text">${escapeHTML(fact.text)}</div>
+        <a class="fact-source" href="${escapeHTML(safeUrl)}" target="_blank" rel="noopener">
+          Source: Wikipedia — ${escapeHTML(fact.source)}
+        </a>
+      `;
+      grid.appendChild(card);
+    });
+
+    const updated = new Date(data.last_updated);
+    const hoursAgo = Math.round((Date.now() - updated.getTime()) / 36e5);
+    timestamp.textContent = hoursAgo < 1 ? 'Updated just now' : `Updated ${hoursAgo}h ago`;
+
+    loading.classList.add('hidden');
+    section.classList.remove('hidden');
+
+    if (window.lucide) lucide.createIcons();
+
+    gsap.fromTo('#live-facts-grid .fact-card',
+      { opacity: 0, y: 30, scale: 0.96 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.45, stagger: 0.07, ease: 'power2.out' }
+    );
+  } catch (err) {
+    console.warn('Live facts unavailable — showing static facts only:', err);
+    loading.classList.add('hidden');
+  }
+}
 
 /* ============================================================
    CHARTS
@@ -548,10 +893,73 @@ spinStyle.textContent = `
 `;
 document.head.appendChild(spinStyle);
 
+/* ============================================================
+   USER SESSION MANAGEMENT (Safe Version)
+============================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // 1. Ask the server who is signed in (getCurrentUser is async now:
+        //    it validates the session via GET /api/me).
+        if (typeof getCurrentUser === 'function') {
+            const user = await getCurrentUser();
+
+            if (user) {
+                const nameEl = document.getElementById('nav-user-name');
+                const emailEl = document.getElementById('nav-user-email');
+                const avatarEl = document.getElementById('nav-user-avatar');
+
+                // Fallback to "User" if name is missing in storage
+                const displayName = user.name ? user.name.split(' ')[0] : 'User';
+                const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
+
+                if (nameEl) nameEl.textContent = displayName;
+                if (emailEl) emailEl.textContent = user.email || 'No email';
+                if (avatarEl) avatarEl.textContent = initial;
+            }
+        }
+
+        // 2. Safely handle dropdown toggling
+        const userMenuBtn = document.getElementById('user-menu-btn');
+        const userDropdown = document.getElementById('user-dropdown');
+        
+        if (userMenuBtn && userDropdown) {
+            userMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = userDropdown.classList.contains('show');
+                
+                if (isOpen) {
+                    gsap.to(userDropdown, { opacity: 0, y: 10, duration: 0.2, onComplete: () => userDropdown.classList.remove('show') });
+                } else {
+                    userDropdown.classList.add('show');
+                    gsap.fromTo(userDropdown, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                    if (userDropdown.classList.contains('show')) {
+                        gsap.to(userDropdown, { opacity: 0, y: 10, duration: 0.2, onComplete: () => userDropdown.classList.remove('show') });
+                    }
+                }
+            });
+        }
+
+        // 3. Safely handle logout
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn && typeof logoutUser === 'function') {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                logoutUser();
+            });
+        }
+    } catch (error) {
+        console.error("Navbar Auth Error (Ignored):", error);
+    }
+});
 
 /* ============================================================
    THEME TOGGLE
-============================================================ */
+============================================================ 
 const themeBtn = document.getElementById('theme-toggle');
 
 if (themeBtn) {
@@ -584,8 +992,84 @@ if (themeBtn) {
 } else {
   console.warn('Theme toggle button #theme-toggle not found in HTML.');
 }
-
+*/
 /* ============================================================
    INIT — always last
 ============================================================ */
+renderDiseaseGuide();   // populate the disease guide on the Coffee Facts page
 navigateTo('page-home');
+lucide.createIcons();
+
+/* ============================================================
+   PWA — service worker, install prompt, offline awareness
+   Keeps the app installable and usable on weak/no signal.
+============================================================ */
+(function initPWA() {
+  // 1) Register the service worker after load, with error handling.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .catch(err => console.warn('Service worker registration failed:', err));
+    });
+  }
+
+  // 2) Show a slim offline bar whenever the backend can't be reached.
+  //    We confirm with a real health ping instead of navigator.onLine, which
+  //    only knows about the local network, not whether our server is up.
+  const offlineBar = document.getElementById('offline-bar');
+  async function syncOnlineStatus() {
+    if (offlineBar) offlineBar.hidden = await isBackendReachable();
+  }
+  window.addEventListener('online', syncOnlineStatus);
+  window.addEventListener('offline', syncOnlineStatus);
+  syncOnlineStatus();
+
+  // 3) Custom "Install Kahawa Smart" banner (instead of the raw browser bar).
+  const banner    = document.getElementById('install-banner');
+  const acceptBtn = document.getElementById('install-accept');
+  const dismissBtn = document.getElementById('install-dismiss');
+  const DISMISS_KEY = 'kahawa_install_dismissed';
+  let deferredPrompt = null;
+
+  const alreadyInstalled = () =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
+
+  function showBanner() {
+    if (!banner) return;
+    banner.hidden = false;
+    gsap.fromTo(banner, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' });
+  }
+  function hideBanner() {
+    if (!banner) return;
+    gsap.to(banner, { opacity: 0, y: 20, duration: 0.25,
+      onComplete: () => { banner.hidden = true; } });
+  }
+
+  // Chrome/Android fires this instead of showing its own prompt when we
+  // preventDefault(). We stash it and reveal our own banner on our terms.
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    if (alreadyInstalled() || localStorage.getItem(DISMISS_KEY)) return;
+    deferredPrompt = e;
+    showBanner();
+  });
+
+  if (acceptBtn) acceptBtn.addEventListener('click', async () => {
+    hideBanner();
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;   // { outcome: 'accepted' | 'dismissed' }
+    deferredPrompt = null;
+  });
+
+  if (dismissBtn) dismissBtn.addEventListener('click', () => {
+    localStorage.setItem(DISMISS_KEY, '1');  // remember so we don't nag again
+    hideBanner();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    localStorage.setItem(DISMISS_KEY, '1');
+    hideBanner();
+  });
+})();

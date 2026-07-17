@@ -1,4 +1,12 @@
 venv/
 __pycache__/
 *.pyc
+node_modules/
 .env
+.vscode/
+*.log
+build/
+dist/
+.git
+kahawa.db
+rag_index.pkl
